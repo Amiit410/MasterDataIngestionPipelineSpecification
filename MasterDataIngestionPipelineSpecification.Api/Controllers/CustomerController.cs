@@ -24,17 +24,17 @@ namespace MasterDataIngestionPipelineSpecification.Api.Controllers
         [HttpPost("ingest")]
         public async Task<IActionResult> Ingest([FromBody] CustomerIngestRequest request)
         {
-            //var errors = _validationService.ValidateCustomer(request);
+            var errors = _validationService.ValidateCustomer(request);
 
-            //if (errors.Any())
-            //{
-            //    return BadRequest(new
-            //    {
-            //        status = "Failure",
-            //        message = "Validation failed",
-            //        validationErrors = ModelState
-            //    });
-            //}
+            if (errors.Any())
+            {
+                return BadRequest(new
+                {
+                    status = "Failure",
+                    message = "Validation failed",
+                    validationErrors = ModelState
+                });
+            }
             var log = new LogCustomerIngestion
             {
                 LogId = Guid.NewGuid(),
