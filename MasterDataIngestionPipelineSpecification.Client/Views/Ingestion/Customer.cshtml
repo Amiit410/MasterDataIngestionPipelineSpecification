@@ -1,0 +1,217 @@
+﻿@using MasterDataIngestionPipelineSpecification.Api.Dtos
+@model CustomerIngestRequest
+@{
+    ViewData["Title"] = "Ingest Customer Master";
+    var errors = ViewBag.ValidationErrors as List<ValidationError>;
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-9 col-xl-8">
+
+        <div class="d-flex align-items-center gap-3 mb-4">
+            <div class="bg-primary bg-opacity-10 rounded-3 p-3">
+                <i class="bi bi-person-fill text-primary fs-3"></i>
+            </div>
+            <div>
+                <h4 class="fw-bold mb-0">Customer Master Ingestion</h4>
+                <small class="text-muted">POST /api/v1/customers/ingest</small>
+            </div>
+        </div>
+
+        @if (TempData["Success"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="bi bi-check-circle-fill me-2"></i>@TempData["Success"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="bi bi-x-circle-fill me-2"></i>@TempData["Error"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+
+        @if (errors != null && errors.Any())
+        {
+            <div class="alert alert-danger">
+                <strong><i class="bi bi-exclamation-triangle me-1"></i>Validation Errors:</strong>
+                <ul class="mb-0 mt-2">
+                    @foreach (var err in errors)
+                    {
+                        <li><strong>@err.Field:</strong> @err.Reason</li>
+                    }
+                </ul>
+            </div>
+        }
+
+        <form asp-controller="Ingestion" asp-action="Customer" method="post">
+            @Html.AntiForgeryToken()
+
+            <!-- Identity -->
+            <div class="card border-0 shadow-sm mb-3">
+                <div class="card-header bg-white fw-semibold border-0 pt-3">
+                    <i class="bi bi-person-badge me-2 text-primary"></i>Customer Identity
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Customer Code <span class="text-danger">*</span></label>
+                            <input asp-for="CustomerCode" class="form-control" placeholder="e.g. CUST001" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Customer Name <span class="text-danger">*</span></label>
+                            <input asp-for="CustomerName" class="form-control" placeholder="e.g. Acme Corporation" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Contact Number <span class="text-danger">*</span></label>
+                            <input asp-for="ContactNo" class="form-control" placeholder="+91-9000000000" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Email <span class="text-danger">*</span></label>
+                            <input asp-for="Email" type="email" class="form-control" placeholder="contact@example.com" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Customer Type <span class="text-danger">*</span></label>
+                            <select asp-for="CustomerType" class="form-select" id="customerTypeSelect">
+                                <option value="">— Select —</option>
+                                <option value="CASH">CASH</option>
+                                <option value="CREDIT">CREDIT</option>
+                                <option value="DISTRIBUTOR">DISTRIBUTOR</option>
+                                <option value="WHOLESALER">WHOLESALER</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">Is Active <span class="text-danger">*</span></label>
+                            <select asp-for="IsActive" class="form-select">
+                                <option value="">— Select —</option>
+                                <option value="true">Yes</option>
+                                <option value="false">No</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">Is Blocked <span class="text-danger">*</span></label>
+                            <select asp-for="IsBlocked" class="form-select">
+                                <option value="">— Select —</option>
+                                <option value="true">Yes</option>
+                                <option value="false">No</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Location -->
+            <div class="card border-0 shadow-sm mb-3">
+                <div class="card-header bg-white fw-semibold border-0 pt-3">
+                    <i class="bi bi-geo-alt me-2 text-warning"></i>Location
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">City Code <span class="text-danger">*</span></label>
+                            <input asp-for="CityCode" class="form-control" placeholder="e.g. MUM" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">City Name <span class="text-danger">*</span></label>
+                            <input asp-for="CityName" class="form-control" placeholder="e.g. Mumbai" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Region Code <span class="text-danger">*</span></label>
+                            <input asp-for="RegionCode" class="form-control" placeholder="e.g. WEST" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Region Name <span class="text-danger">*</span></label>
+                            <input asp-for="RegionName" class="form-control" placeholder="e.g. West India" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Credit Terms -->
+            <div class="card border-0 shadow-sm mb-3" id="creditSection">
+                <div class="card-header bg-white fw-semibold border-0 pt-3">
+                    <i class="bi bi-credit-card me-2 text-success"></i>Credit Terms
+                    <small class="text-muted fw-normal ms-2">(Required for non-CASH customers)</small>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Credit Limit <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text">₹</span>
+                                <input asp-for="CreditLimit" type="number" step="0.01" min="0" class="form-control" placeholder="0.00" />
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Credit Days <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <input asp-for="CreditDays" type="number" min="0" class="form-control" placeholder="0" />
+                                <span class="input-group-text">days</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Optional: Channel & Payment Term -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white fw-semibold border-0 pt-3">
+                    <i class="bi bi-diagram-3 me-2 text-info"></i>Channel & Payment Term
+                    <small class="text-muted fw-normal ms-2">(Optional)</small>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Channel Code</label>
+                            <input asp-for="ChannelCode" class="form-control" placeholder="e.g. RETAIL" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Channel Name</label>
+                            <input asp-for="ChannelName" class="form-control" placeholder="e.g. Retail Channel" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Payment Term Code</label>
+                            <input asp-for="PaymentTermCode" class="form-control" placeholder="e.g. NET30" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Payment Term Name</label>
+                            <input asp-for="PaymentTermName" class="form-control" placeholder="e.g. Net 30 Days" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex gap-2 justify-content-end">
+                <a asp-controller="Dashboard" asp-action="Logs" asp-route-domain="Customer" class="btn btn-outline-secondary">
+                    <i class="bi bi-list me-1"></i>View Customer Logs
+                </a>
+                <button type="reset" class="btn btn-outline-danger">
+                    <i class="bi bi-x-circle me-1"></i>Clear
+                </button>
+                <button type="submit" class="btn btn-primary px-4">
+                    <i class="bi bi-cloud-upload me-2"></i>Submit Customer Data
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Show/hide credit section hint based on customer type
+        document.getElementById('customerTypeSelect').addEventListener('change', function () {
+            var section = document.getElementById('creditSection');
+            var header = section.querySelector('.card-header small');
+            if (this.value === 'CASH') {
+                header.textContent = '(Not required for CASH customers)';
+                header.className = 'text-muted fw-normal ms-2';
+            } else {
+                header.textContent = '(Required for non-CASH customers)';
+                header.className = 'text-danger fw-normal ms-2';
+            }
+        });
+    </script>
+}

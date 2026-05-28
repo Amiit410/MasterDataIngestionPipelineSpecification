@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="../MasterData IngestionPipelineSpecification.Dtos/MasterData IngestionPipelineSpecification.Dtos.csproj" />
+  <Project Path="../MasterDataIngestionPipelineSpecification.Client/MasterDataIngestionPipelineSpecification.Client.csproj" />
+  <Project Path="MasterDataIngestionPipelineSpecification.Api.csproj" />
+</Solution>

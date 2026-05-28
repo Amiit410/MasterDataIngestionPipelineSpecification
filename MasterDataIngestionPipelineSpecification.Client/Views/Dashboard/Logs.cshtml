@@ -1,0 +1,212 @@
+﻿@using MasterDataIngestionPipelineSpecification.Api.Dtos
+@model PagedResult<IngestionLogDto>
+@{
+    ViewData["Title"] = "Ingestion Logs";
+    string domain = ViewBag.Domain ?? "Customer";
+    string otherDomain = domain == "Customer" ? "Item" : "Customer";
+    string domainColor = domain == "Customer" ? "primary" : "success";
+    string domainIcon = domain == "Customer" ? "bi-person-lines-fill" : "bi-boxes";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-0">
+            <i class="bi @domainIcon me-2 text-@domainColor"></i>@domain Ingestion Logs
+        </h4>
+        <small class="text-muted">Showing all @domain ingestion requests with pipeline status</small>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-action="Logs" asp-route-domain="@otherDomain" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left-right me-1"></i>Switch to @otherDomain
+        </a>
+        <button class="btn btn-outline-@domainColor btn-sm" onclick="location.reload()">
+            <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+        </button>
+    </div>
+</div>
+
+<!-- Domain Toggle Tabs -->
+<ul class="nav nav-tabs mb-3">
+    <li class="nav-item">
+        <a class="nav-link @(domain == "Customer" ? "active fw-semibold" : "")"
+           asp-action="Logs" asp-route-domain="Customer">
+            <i class="bi bi-person-fill me-1 text-primary"></i>Customer
+            @if (domain == "Customer")
+            {
+                <span class="badge bg-primary ms-1">@Model.TotalCount</span>
+            }
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link @(domain == "Item" ? "active fw-semibold" : "")"
+           asp-action="Logs" asp-route-domain="Item">
+            <i class="bi bi-box-fill me-1 text-success"></i>Item
+            @if (domain == "Item")
+            {
+                <span class="badge bg-success ms-1">@Model.TotalCount</span>
+            }
+        </a>
+    </li>
+</ul>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        @if (!Model.Items.Any())
+        {
+            <div class="text-center py-5 text-muted">
+                <i class="bi bi-inbox fs-1 d-block mb-3 opacity-25"></i>
+                No @domain ingestion records found.
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-3">Reference ID</th>
+                            <th>Received Time</th>
+                            <th class="text-center">API Status</th>
+                            <th>Validation Errors</th>
+                            <th class="text-center">Process Status</th>
+                            <th class="text-center">Payload</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var log in Model.Items)
+                        {
+                            <tr>
+                                <td class="ps-3">
+                                    <code class="text-@domainColor small">@log.ReferenceId</code>
+                                </td>
+                                <td>
+                                    <div class="small">@log.ReceivedTime.ToString("dd MMM yyyy")</div>
+                                    <div class="text-muted" style="font-size:0.75rem">@log.ReceivedTime.ToString("HH:mm:ss") UTC</div>
+                                </td>
+                                <td class="text-center">
+                                    @if (log.ApiStatus == 202)
+                                    {
+                                        <span class="badge bg-success"><i class="bi bi-check me-1"></i>202</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-danger"><i class="bi bi-x me-1"></i>400</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(log.ValidationFailures))
+                                    {
+                                        <span class="text-danger small" title="@log.ValidationFailures">
+                                            <i class="bi bi-exclamation-circle me-1"></i>
+                                            @(log.ValidationFailures.Length > 60
+                                                                            ? log.ValidationFailures[..60] + "…"
+                                                                            : log.ValidationFailures)
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted small">—</span>
+                                    }
+                                </td>
+                                <td class="text-center">
+                                    @switch (log.ProcessingStatus)
+                                    {
+                                        case "PROCESSED":
+                                            <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>PROCESSED</span>
+                                            break;
+                                        case "PENDING":
+                                            <span class="badge bg-warning text-dark"><i class="bi bi-hourglass-split me-1"></i>PENDING</span>
+                                            break;
+                                        case "ERROR":
+                                            <span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>ERROR</span>
+                                            break;
+                                        default:
+                                            <span class="badge bg-secondary">@log.ProcessingStatus</span>
+                                            break;
+                                    }
+                                </td>
+                                <td class="text-center">
+                                    <button class="btn btn-outline-secondary btn-sm"
+                                            onclick="showPayload(this)"
+                                            data-payload="@System.Web.HttpUtility.HtmlAttributeEncode(log.RawRequest)"
+                                            data-bs-toggle="modal" data-bs-target="#payloadModal">
+                                        <i class="bi bi-code-slash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            @if (Model.TotalPages > 1)
+            {
+                <div class="d-flex justify-content-between align-items-center px-3 py-2 border-top bg-light">
+                    <small class="text-muted">
+                        Page @Model.Page of @Model.TotalPages (&nbsp;@Model.TotalCount records&nbsp;)
+                    </small>
+                    <nav>
+                        <ul class="pagination pagination-sm mb-0">
+                            <li class="page-item @(Model.Page == 1 ? "disabled" : "")">
+                                <a class="page-link" asp-action="Logs" asp-route-domain="@domain" asp-route-page="@(Model.Page - 1)">
+                                    <i class="bi bi-chevron-left"></i>
+                                </a>
+                            </li>
+                            @for (int p = Math.Max(1, Model.Page - 2); p <= Math.Min(Model.TotalPages, Model.Page + 2); p++)
+                            {
+                                <li class="page-item @(p == Model.Page ? "active" : "")">
+                                    <a class="page-link" asp-action="Logs" asp-route-domain="@domain" asp-route-page="@p">@p</a>
+                                </li>
+                            }
+                            <li class="page-item @(Model.Page == Model.TotalPages ? "disabled" : "")">
+                                <a class="page-link" asp-action="Logs" asp-route-domain="@domain" asp-route-page="@(Model.Page + 1)">
+                                    <i class="bi bi-chevron-right"></i>
+                                </a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            }
+        }
+    </div>
+</div>
+
+<!-- Payload Modal -->
+<div class="modal fade" id="payloadModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-code-slash me-2"></i>Raw Payload</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body bg-dark rounded-2 m-3 p-3">
+                <pre id="payloadContent" class="text-success mb-0 small" style="white-space:pre-wrap;word-break:break-all;"></pre>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-sm btn-outline-secondary" onclick="copyPayload()">
+                    <i class="bi bi-clipboard me-1"></i>Copy
+                </button>
+                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function showPayload(btn) {
+            try {
+                var raw = btn.getAttribute('data-payload');
+                var parsed = JSON.parse(raw);
+                document.getElementById('payloadContent').textContent = JSON.stringify(parsed, null, 2);
+            } catch {
+                document.getElementById('payloadContent').textContent = btn.getAttribute('data-payload');
+            }
+        }
+        function copyPayload() {
+            var text = document.getElementById('payloadContent').textContent;
+            navigator.clipboard.writeText(text).then(() => alert('Copied to clipboard!'));
+        }
+    </script>
+}

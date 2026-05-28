@@ -1,0 +1,234 @@
+﻿@using MasterDataIngestionPipelineSpecification.Api.Dtos
+@model ItemIngestRequest
+@{
+    ViewData["Title"] = "Ingest Item Master";
+    var errors = ViewBag.ValidationErrors as List<ValidationError>;
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-9 col-xl-8">
+
+        <div class="d-flex align-items-center gap-3 mb-4">
+            <div class="bg-success bg-opacity-10 rounded-3 p-3">
+                <i class="bi bi-box-fill text-success fs-3"></i>
+            </div>
+            <div>
+                <h4 class="fw-bold mb-0">Item Master Ingestion</h4>
+                <small class="text-muted">POST /api/v1/items/ingest</small>
+            </div>
+        </div>
+
+        @if (TempData["Success"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show">
+                <i class="bi bi-check-circle-fill me-2"></i>@TempData["Success"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show">
+                <i class="bi bi-x-circle-fill me-2"></i>@TempData["Error"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+
+        @if (errors != null && errors.Any())
+        {
+            <div class="alert alert-danger">
+                <strong><i class="bi bi-exclamation-triangle me-1"></i>Validation Errors:</strong>
+                <ul class="mb-0 mt-2">
+                    @foreach (var err in errors)
+                    {
+                        <li><strong>@err.Field:</strong> @err.Reason</li>
+                    }
+                </ul>
+            </div>
+        }
+
+        <form asp-controller="Ingestion" asp-action="Item" method="post" id="itemForm">
+            @Html.AntiForgeryToken()
+
+            <!-- Item Identity -->
+            <div class="card border-0 shadow-sm mb-3">
+                <div class="card-header bg-white fw-semibold border-0 pt-3">
+                    <i class="bi bi-upc-scan me-2 text-success"></i>Item Identity
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Item Code <span class="text-danger">*</span></label>
+                            <input asp-for="Material!.ItemCode" class="form-control" placeholder="e.g. ITEM001" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Item Name <span class="text-danger">*</span></label>
+                            <input asp-for="Material!.ItemName" class="form-control" placeholder="e.g. Premium Widget 500g" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Sales Org Code <span class="text-danger">*</span></label>
+                            <input asp-for="Material!.SalesOrgCode" class="form-control" placeholder="e.g. SO001" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Base UOM <span class="text-danger">*</span></label>
+                            <input asp-for="Material!.BaseUOM" class="form-control" placeholder="e.g. EA, KG, L" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Is Batch Enabled <span class="text-danger">*</span></label>
+                            <select asp-for="Material!.IsBatchEnabled" class="form-select">
+                                <option value="">— Select —</option>
+                                <option value="true">Yes</option>
+                                <option value="false">No</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Is Active <span class="text-danger">*</span></label>
+                            <select asp-for="Material!.IsActive" class="form-select">
+                                <option value="">— Select —</option>
+                                <option value="1">1 (Active)</option>
+                                <option value="0">0 (Inactive)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Brand & Category -->
+            <div class="card border-0 shadow-sm mb-3">
+                <div class="card-header bg-white fw-semibold border-0 pt-3">
+                    <i class="bi bi-tags me-2 text-info"></i>Brand & Category
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Brand Code <span class="text-danger">*</span></label>
+                            <input asp-for="Material!.BrandCode" class="form-control" placeholder="e.g. BRD001" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Brand Name <span class="text-danger">*</span></label>
+                            <input asp-for="Material!.BrandName" class="form-control" placeholder="e.g. Acme Brand" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Category Code <span class="text-danger">*</span></label>
+                            <input asp-for="Material!.CategoryCode" class="form-control" placeholder="e.g. CAT001" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Category Name <span class="text-danger">*</span></label>
+                            <input asp-for="Material!.CategoryName" class="form-control" placeholder="e.g. Beverages" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- UOM List -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white border-0 pt-3 d-flex justify-content-between align-items-center">
+                    <span class="fw-semibold"><i class="bi bi-rulers me-2 text-warning"></i>UOM List <span class="text-danger">*</span></span>
+                    <button type="button" class="btn btn-sm btn-outline-success" onclick="addUomRow()">
+                        <i class="bi bi-plus-circle me-1"></i>Add UOM
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div id="uomRows">
+                        <div class="row g-2 mb-2 align-items-center uom-row">
+                            <div class="col-5">
+                                <input type="text" name="Material.UomList[0].Uom"
+                                       class="form-control" placeholder="UOM code (e.g. EA)" required />
+                            </div>
+                            <div class="col-5">
+                                <input type="number" name="Material.UomList[0].ConversionFactor"
+                                       class="form-control" placeholder="Conversion factor (e.g. 1)" step="0.000001" min="0.000001" required />
+                            </div>
+                            <div class="col-2 text-center">
+                                <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeUomRow(this)">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-muted small mt-1">
+                        <i class="bi bi-info-circle me-1"></i>At least one UOM entry is required. ConversionFactor must be &gt; 0.
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex gap-2 justify-content-end">
+                <a asp-controller="Dashboard" asp-action="Logs" asp-route-domain="Item" class="btn btn-outline-secondary">
+                    <i class="bi bi-list me-1"></i>View Item Logs
+                </a>
+                <button type="reset" class="btn btn-outline-danger" onclick="resetUomRows()">
+                    <i class="bi bi-x-circle me-1"></i>Clear
+                </button>
+                <button type="submit" class="btn btn-success px-4">
+                    <i class="bi bi-cloud-upload me-2"></i>Submit Item Data
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let uomIndex = 1;
+
+        function addUomRow() {
+            const container = document.getElementById('uomRows');
+            const row = document.createElement('div');
+            row.className = 'row g-2 mb-2 align-items-center uom-row';
+            row.innerHTML = `
+                <div class="col-5">
+                    <input type="text" name="Material.UomList[${uomIndex}].Uom"
+                           class="form-control" placeholder="UOM code (e.g. CS)" required />
+                </div>
+                <div class="col-5">
+                    <input type="number" name="Material.UomList[${uomIndex}].ConversionFactor"
+                           class="form-control" placeholder="Conversion factor" step="0.000001" min="0.000001" required />
+                </div>
+                <div class="col-2 text-center">
+                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeUomRow(this)">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>`;
+            container.appendChild(row);
+            uomIndex++;
+        }
+
+        function removeUomRow(btn) {
+            const rows = document.querySelectorAll('.uom-row');
+            if (rows.length > 1) {
+                btn.closest('.uom-row').remove();
+                reindexUomRows();
+            } else {
+                alert('At least one UOM entry is required.');
+            }
+        }
+
+        function reindexUomRows() {
+            document.querySelectorAll('.uom-row').forEach((row, idx) => {
+                row.querySelectorAll('input').forEach(input => {
+                    input.name = input.name.replace(/\[\d+\]/, `[${idx}]`);
+                });
+            });
+            uomIndex = document.querySelectorAll('.uom-row').length;
+        }
+
+        function resetUomRows() {
+            setTimeout(() => {
+                const container = document.getElementById('uomRows');
+                container.innerHTML = `
+                    <div class="row g-2 mb-2 align-items-center uom-row">
+                        <div class="col-5">
+                            <input type="text" name="Material.UomList[0].Uom" class="form-control" placeholder="UOM code (e.g. EA)" required />
+                        </div>
+                        <div class="col-5">
+                            <input type="number" name="Material.UomList[0].ConversionFactor" class="form-control" placeholder="Conversion factor (e.g. 1)" step="0.000001" min="0.000001" required />
+                        </div>
+                        <div class="col-2 text-center">
+                            <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeUomRow(this)"><i class="bi bi-trash"></i></button>
+                        </div>
+                    </div>`;
+                uomIndex = 1;
+            }, 50);
+        }
+    </script>
+}
